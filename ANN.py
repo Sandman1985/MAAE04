@@ -10,45 +10,51 @@ class ANN:
     entradas = None     #Cantidad de valores de entrada
     salidas = None      #Cantidad de valores de salida
     ni = None           #Parametro de aprendizaje
+    k = None            #Parametro de aprendizaje
     
     pesos_oculta = None
     pesos_salida = None
     
+    tang = 0
     iteraciones = 0     #controla la cantidad de iteraciones
     max_It = None
     lista_error = []
     ##################################################################################################################
-    def __init__(self,datos,resultados,sizeoculta,entradas=1,salidas=1,ni=0.1,max_It=10000):
-        self.datos   = np.array(datos)
-        self.resultados  = np.array(resultados)
+    def __init__(self,datos,resultados,sizeoculta,entradas=1,salidas=1,ni=0.1,k = 1, tang = 0, max_It=100000):
+        self.datos   = datos
+        self.resultados  = resultados
         self.sizeoculta = sizeoculta
         self.entradas = entradas
         self.salidas = salidas
         self.ni = ni
+        self.k = k
+        self.tang = tang
         self.max_It = max_It
         
+        np.random.seed(5)
         # Los pesos se inicializan con valores randomicos chicos         
         #pesos entre entrada y capa oculta pesos_oculta[i][j] es el peso desde la entrada j a la neurona oculta i
-        self.pesos_oculta =  np.random.random((self.entradas,self.sizeoculta)) 
+        self.pesos_oculta =  2*np.random.random((self.entradas,self.sizeoculta)) -1
         #pesos entre  capa oculta y salida pesos_salida[i][j] es el peso desde  la neurona oculta j a la salida i
-        self.pesos_salida =  np.random.random((self.sizeoculta,self.salidas)) 
+        self.pesos_salida =  2*np.random.random((self.sizeoculta,self.salidas)) -1
 
             
         
     def entrenar(self):
         while True:            
-            for dato, resultado in zip(self.datos, self.resultados):
-                prediccion = self.foward(dato)  
-                error = list((self.sig(resultado) -prediccion))  
-                self.lista_error.extend(error[0])
-                deltaSalida = self.delta_salida(prediccion,error)
-                deltaOculta = self.delta_oculta(prediccion,deltaSalida)
-                self.actualizar_pesos(deltaSalida,deltaOculta,dato)
-                if ( self.iteraciones == 100 or self.iteraciones == 1000 or self.iteraciones == 10000 or self.iteraciones == 10000):
-                    self.grafica_actual()
-                if self.condition(True):
-                    break
-            if self.condition(False):
+            # resultados predictos por la ANN
+            prediccion = self.foward()
+            # diferencia con respecto a las salidas esperadas
+            error = self.resultados -prediccion       
+            # almaceno promedio del error para graficar    
+            self.lista_error.extend(self.error_avg(error))            
+            deltaSalida = self.delta_salida(prediccion,error)
+            deltaOculta = self.delta_oculta(deltaSalida)
+            self.actualizar_pesos(deltaSalida,deltaOculta)
+            
+            if ( self.iteraciones == 100 or self.iteraciones == 1000 or self.iteraciones == 10000 or self.iteraciones == 100000 or self.iteraciones == 1000000):
+                self.grafica_actual()
+            if self.condition(True):
                 break
         self.graficar_error()       
     
@@ -60,37 +66,43 @@ class ANN:
     #FUNCIONES
     # funcion sigmoidal 
     def sig(self,x):
-        return 1/(1+np.exp(-x))
+        if self.tang == 0:
+            return 1/(1+np.exp(-self.k*x))
+        else:
+            return np.tanh(self.k*x)   
+        
 
     # derivada funcion sigmoidal
     def devSig(self,x):
         return x*(1-x)
     
     # propagacion hacia adelante
-    def foward(self,dato):
-        intermedio = self.sig(np.dot(dato,self.pesos_oculta))
+    def foward(self):
+        intermedio = self.sig(np.dot(self.datos,self.pesos_oculta))
         return self.sig(np.dot(intermedio,self.pesos_salida))
-
+    
+    #error promedio
+    def error_avg(self,error):
+        e1 = np.abs(error)
+        e2= sum (e1,0.0)
+        return e2 / float(len(error))
     
     #calcula el delta en la salida
     def delta_salida(self,prediccion,error):
         return error * self.devSig(prediccion)
 
     #calcula el delta en la capa oculta
-    def delta_oculta(self,dato,ds):
-        return self.devSig(self.sig(np.dot(dato,self.pesos_oculta))) * ds.dot(self.pesos_salida.T)
-       # return self.devSig(prediccion)* np.dot(self.pesos_salida,ds)
-        #complica porque es una sola salida y toma self.pesos_salida como una matriz indefinida en lugar de un escalar
+    def delta_oculta(self,deltaSalida):        
+        return  deltaSalida.dot(self.pesos_salida.T) * self.devSig(self.sig(np.dot(self.datos,self.pesos_oculta)))
+
     
     #actualiza los valore de w
-    def actualizar_pesos(self,deltaSalida,deltaOculta,dato):     
-        # actualiza pesos de capa oculta       
+    def actualizar_pesos(self,deltaSalida,deltaOculta):     
+        # actualiza pesos de capa oculta  
+        self.pesos_oculta +=   self.datos.T.dot(deltaOculta) * self.ni
 
-        #self.pesos_oculta +=   dato.T.dot(deltaOculta) * self.ni
-        self.pesos_oculta +=   dato * deltaOculta * self.ni
-        
         # entrada de la capa de salida 
-        intermedio = self.sig(np.dot(dato,self.pesos_oculta))
+        intermedio = self.sig(np.dot(self.datos,self.pesos_oculta))
         # actualiza pesos capa de salida
         self.pesos_salida +=  intermedio.T.dot(deltaSalida) *  self.ni         
 
@@ -108,22 +120,15 @@ class ANN:
         base = [x for x in range(0,self.max_It+1) ]
         b = np.array(base)
         e = np.array(self.lista_error)
-        plt.plot(b, e, 'bo', b, e, 'k')
+
+        plt.plot(b, e, 'bo',)
         plt.show()
     
-    def estimado(self,dato):
-        intermedio = self.sig(np.dot(dato,self.pesos_oculta))
-        return np.dot(intermedio,self.pesos_salida)
     
     def grafica_actual(self):
         
-        e = [self.estimado(x)[0] for x in self.datos]
-    
-        print(self.datos)
-        print("-----------")
-        print(e)
-        print("-----------")
+        e = self.foward() 
    
         plt.plot(self.datos, e, 'bo', self.datos, e, 'k')
-        plt.plot(self.datos, self.datos**2, 'bo', self.datos, self.datos**2, 'k')
+        plt.plot(self.datos, self.resultados, 'bo', self.datos, self.resultados, 'k')
         plt.show() 
