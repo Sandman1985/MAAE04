@@ -1,5 +1,9 @@
 import numpy as np
-
+import math
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import rcParams
+rcParams.update({'figure.autolayout': True})
 
 
 class ANN:
@@ -83,7 +87,11 @@ class ANN:
 
     # derivada funcion sigmoidal
     def devSig(self,x):
-        return x*(1-x)
+        if self.tang == 0:
+            return x*(1-x)
+        else:
+            return 1 - np.power(x, 2)
+        
     
     # propagacion hacia adelante
     def foward(self):
@@ -144,8 +152,19 @@ class ANN:
     
     
     def grafica_actual(self):
-        
-        e = self.foward() 
-        plt.plot(self.datos, e, 'bo', self.datos, e, 'k')
-        plt.plot(self.datos, self.resultados, 'bo', self.datos, self.resultados, 'k')
+        e = self.foward()
+        if self.entradas ==1:             
+            plt.plot(self.datos, e, 'bo', self.datos, e, 'k')
+            plt.plot(self.datos, self.resultados, 'bo', self.datos, self.resultados, 'k')
+        else:
+            por_ejes = zip(*self.datos)
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+
+            ax.scatter(por_ejes[0], por_ejes[1], self.resultados ,  c='r', marker='o')
+            ax.scatter(por_ejes[0], por_ejes[1], e,  c='b', marker='^')
+
+            ax.set_xlabel('X')
+            ax.set_ylabel('Y ')
+            ax.set_zlabel('H(x,y)')
         plt.show()
