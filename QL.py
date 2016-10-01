@@ -66,7 +66,7 @@ class QL:
             movimientos.append(3)
         return movimientos
 
-    def execute(self):
+    def ejecutar(self):
         '''
         Ejecuta el algoritmo
         '''

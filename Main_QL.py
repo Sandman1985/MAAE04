@@ -15,19 +15,19 @@ goals = [(2,2), (2,3), (3,2), (3,3)]
 # Configuracion parametrica
 parms = {
     "DF = 0,8":{
-        "episodios":[5,10,30],
+        "episodios":[30],
         "df":0.8
     },
-    "DF = 0,4":{
-        "episodios":[5,10,30],
-        "df":0.4
-    }
+    # "DF = 0,4":{
+    #     "episodios":[5,10,30],
+    #     "df":0.4
+    # }
 }
 
 for caso, param in parms.items():
     print "Caso: " + caso + "\n"
     df = param['df']
     for ep in param['episodios']:
-        print "Empisodios: " + str(ep)
+        print "Episodios: " + str(ep)
         learner = QL(r, goals, df = df, episodios = ep)
-        learner.execute()
+        learner.ejecutar()
